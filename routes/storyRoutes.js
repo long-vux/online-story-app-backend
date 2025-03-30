@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createStory, getStoriesByCategory } = require('../controllers/storyController');
+const { createStory, getStoriesByCategory } = require('../src/controllers/storyController');
 
 router.post('/', createStory);
 router.get('/category/:category_id', getStoriesByCategory);
