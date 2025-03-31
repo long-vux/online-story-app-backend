@@ -1,9 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { createChapter, getChaptersByStory, addChapterImage } = require('../controllers/chapterController');
+const { addChapter, getChapterById, updateChapter, deleteChapter } = require('../controllers/chapterController');
+const { verifyToken, verifyAdmin } = require('../middlewares/authMiddleware');
 
-router.post('/', createChapter);
-router.get('/story/:story_id', getChaptersByStory);
-router.post('/:chapter_id/images', addChapterImage);
+// [POST] /api/chapters
+router.post('/', verifyToken, verifyAdmin, addChapter);
+
+// [GET] /api/chapters/:id
+router.get('/:id', getChapterById);
+
+// [PUT] /api/chapters/:id
+router.put('/:id',verifyToken, verifyAdmin, updateChapter);
+
+// [DELETE] /api/chapters/:id
+router.delete('/:id',verifyToken, verifyAdmin, deleteChapter);
 
 module.exports = router;

@@ -16,11 +16,12 @@ connectDB();
 
 // Routes
 app.use('/api/user', require('./src/routes/authRoutes'));
-// app.use('/api/users', require('./src/routes/userRoutes'));
 // app.use('/api/admin', require('./src/routes/adminRoutes'));
 app.use('/api/stories', require('./src/routes/storyRoutes'));
 app.use('/api/chapters', require('./src/routes/chapterRoutes'));
 app.use('/api/categories', require('./src/routes/categoryRoutes'));
+app.use('/api/chapters', require('./src/routes/chapterRoutes'));
+// app.use('/api/bookmarks', require('./src/routes/bookmarkRoutes'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
