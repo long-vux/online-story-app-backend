@@ -15,7 +15,7 @@ app.use(express.json(), express.urlencoded({ extended: true }));
 connectDB();
 
 // Routes
-app.use('/api/auth', require('./src/routes/authRoutes'));
+app.use('/api/user', require('./src/routes/authRoutes'));
 // app.use('/api/users', require('./src/routes/userRoutes'));
 // app.use('/api/admin', require('./src/routes/adminRoutes'));
 app.use('/api/stories', require('./src/routes/storyRoutes'));
