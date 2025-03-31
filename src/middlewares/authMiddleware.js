@@ -18,7 +18,7 @@ const verifyToken = (req, res, next) => {
 };
 
 // admin middleware
-const admin = (req, res, next) => {
+const verifyAdmin = (req, res, next) => {
     console.log('user role: ', req.user)
     if (req.user && req.user.role === 'Admin') {
         next();
@@ -27,4 +27,4 @@ const admin = (req, res, next) => {
     }
 }
 
-module.exports = { verifyToken, admin };
+module.exports = { verifyToken, verifyAdmin };

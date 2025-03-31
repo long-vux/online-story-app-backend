@@ -18,7 +18,7 @@ const registerUser = async (req, res) => {
     user = new User({ username, email, password: hashedPassword });
     await user.save();
 
-    res.status(201).json({ message: 'Đăng ký thành công!' });
+    res.status(201).json({ message: 'Đăng ký thành công!', user });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi server! ' + error.message });
   }
