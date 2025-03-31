@@ -51,7 +51,7 @@ const loginUser = async (req, res) => {
     const token = jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '5h' }
     );
 
     res.json({ message: 'Đăng nhập thành công!', token });

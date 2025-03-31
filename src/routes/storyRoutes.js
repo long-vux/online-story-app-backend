@@ -1,8 +1,13 @@
-const express = require('express');
-const router = express.Router();
-const { createStory, getStoriesByCategory } = require('../controllers/storyController');
+const express = require("express");
+const { createStory, getStories, getStoryById, updateStory, deleteStory } = require("../controllers/storyController");
+const { verifyToken, verifyAdmin } = require("../middlewares/authMiddleware");
 
-router.post('/', createStory);
-router.get('/category/:category_id', getStoriesByCategory);
+const router = express.Router();
+
+router.post("/", verifyToken, verifyAdmin, createStory); // Chỉ Admin mới có thể tạo truyện
+router.get("/", getStories); // Ai cũng có thể xem danh sách truyện
+router.get("/:id", getStoryById); // Ai cũng có thể xem truyện 
+router.put("/:id", verifyToken, verifyAdmin, updateStory); // Chỉ Admin mới có thể sửa truyện
+router.delete("/:id", verifyToken, verifyAdmin, deleteStory); // Chỉ Admin mới có thể xóa truyện
 
 module.exports = router;
