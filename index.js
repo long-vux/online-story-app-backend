@@ -21,6 +21,7 @@ app.use('/api/stories', require('./src/routes/storyRoutes'));
 app.use('/api/chapters', require('./src/routes/chapterRoutes'));
 app.use('/api/categories', require('./src/routes/categoryRoutes'));
 app.use('/api/chapters', require('./src/routes/chapterRoutes'));
+app.use('/api/chapter-image', require('./src/routes/chapterImageRoutes'));
 // app.use('/api/bookmarks', require('./src/routes/bookmarkRoutes'));
 
 const PORT = process.env.PORT || 5000;
