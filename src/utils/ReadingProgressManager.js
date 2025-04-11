@@ -39,4 +39,4 @@ class ReadingProgressManager {
 const instance = new ReadingProgressManager();
 Object.freeze(instance);
 
-export default instance;
+module.exports = instance;

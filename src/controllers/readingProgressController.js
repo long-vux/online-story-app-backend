@@ -20,4 +20,4 @@ const saveProgressToDatabase = async () => {
   await ReadingProgressManager.saveProgressToDatabase(ReadingProgress);
 };
 
-export { getProgress, updateProgress, saveProgressToDatabase };
+module.exports = { getProgress, updateProgress, saveProgressToDatabase };

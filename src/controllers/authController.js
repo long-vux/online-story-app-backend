@@ -7,10 +7,22 @@ const registerUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Kiểm tra email hoặc username đã tồn tại chưa
-    let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ message: 'Email đã được sử dụng!' });
+    // Kiểm tra email đã tồn tại chưa
+    let user = await User.findOne({ $or: [{ email }, { username }] });
+    if (user) {
+      if (user.email === email) {
+        return res.status(400).json({ message: 'Email đã được sử dụng!' });
+      } else {
+        return res.status(400).json({ message: 'Username đã được sử dụng!' });
+      }
+    }
 
+    // Kiểm tra email hợp lệ
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Email không hợp lệ!" });
+    }
+    
     // Hash mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -37,6 +49,11 @@ const loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Sai mật khẩu!' });
 
+    // Kiểm tra email hợp lệ
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Email không hợp lệ!" });
+    }
     // Tạo token JWT
     const payload = {
       userId: user._id,

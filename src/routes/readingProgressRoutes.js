@@ -8,3 +8,4 @@ router.get("/:userId/:bookId", getProgress);
 // [POST] /api/progress
 router.post("/", updateProgress);
 
+module.exports = router;

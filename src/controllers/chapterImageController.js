@@ -4,7 +4,6 @@ const fs = require('fs');
 const Chapter = require('../models/Chapter');
 const Story = require('../models/Story');
 
-
 // 📌 Thêm hình ảnh vào Chapter (tự động lấy storyTitle và tăng image_order)
 exports.uploadChapterImages = async (req, res) => {
   try {
@@ -65,7 +64,7 @@ exports.uploadChapterImages = async (req, res) => {
 exports.getChapterImages = async (req, res) => {
   try {
     const { chapter_id } = req.params;
-    const images = await ChapterImage.find({ chapter_id }).sort('image_order');
+    const images = await ChapterImage.find({ chapter_id }).sort('image_order').populate('chapter_id', 'title');
     res.json({ images });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi server!', error: error.message });
