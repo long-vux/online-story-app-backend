@@ -19,7 +19,6 @@ const verifyToken = (req, res, next) => {
 
 // admin middleware
 const verifyAdmin = (req, res, next) => {
-    console.log('user role: ', req.user)
     if (req.user && req.user.role === 'Admin') {
         next();
     } else {

@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
 
 // [POST] api/user/register 
 const registerUser = async (req, res) => {
@@ -121,7 +123,7 @@ const getUserById = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params; // ID của user cần cập nhật
-    const { username, email, contact_info, member_level } = req.body;
+    const { username, email, contact_info } = req.body;
 
     const requester = req.user
 
@@ -139,7 +141,6 @@ const updateUser = async (req, res) => {
     user.username = username || user.username;
     user.email = email || user.email;
     user.contact_info = contact_info || user.contact_info;
-    user.member_level = member_level || user.member_level;
 
     await user.save();
 
@@ -182,24 +183,24 @@ const changePassword = async (req, res) => {
 
     // Kiểm tra quyền truy cập
     if (requester.userId !== id) {
-      return res.status(403).json({ message: "Bạn không có quyền truy cập!" });
+      return res.status(403).json({ message: "Access denied!" });
     }
     // Kiểm tra xem user có tồn tại không
     const user = await User.findById(id);
     if (!user) {
-      return res.status(404).json({ message: "Người dùng không tồn tại!" });
+      return res.status(404).json({ message: "Invalid user!" });
     }
     // Kiểm tra mật khẩu hiện tại
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng!' });
+      return res.status(400).json({ message: 'Wrong current password!' });
     }
     // Mã hóa mật khẩu mới
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     // Cập nhật mật khẩu mới
     user.password = hashedPassword;
     await user.save();
-    res.status(200).json({ message: "Đổi mật khẩu thành công!" });
+    res.status(200).json({ message: "Change password successfully!" });
   }
   catch (error) {
     res.status(500).json({ message: "Lỗi server!", error: error.message });
@@ -207,4 +208,41 @@ const changePassword = async (req, res) => {
 }
 
 
-module.exports = { loginUser, registerUser, getUsers, getUserById, updateUser, deleteUser, changePassword };
+const updateAvatar = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    if (!req.file) return res.status(400).json({ message: 'Chưa có ảnh được tải lên!' });
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User không tồn tại!' });
+
+    // Nếu user đã có avatar -> xóa file cũ
+    if (user.avatar) {
+      const oldAvatarPath = path.join(__dirname, '..', 'uploads', 'avatars', user.avatar);
+      if (fs.existsSync(oldAvatarPath)) {
+        fs.unlinkSync(oldAvatarPath);
+      }
+    }
+
+    // Lấy file mới từ thư mục tạm
+    const tmpPath = req.file.path;
+    const filename = req.file.filename;
+
+    const destDir = path.join(__dirname, '..', 'uploads', 'avatars');
+    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+
+    const destPath = path.join(destDir, filename);
+    console.log(destPath);
+    fs.renameSync(tmpPath, destPath);
+
+    // Cập nhật user với avatar mới
+    user.avatar = filename;
+    await user.save();
+
+    res.status(200).json({ message: 'Cập nhật avatar thành công!', avatar: filename });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+module.exports = { loginUser, registerUser, getUsers, getUserById, updateUser, deleteUser, changePassword, updateAvatar };

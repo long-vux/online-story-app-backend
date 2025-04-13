@@ -3,11 +3,7 @@ const createUploader = require('../config/multerStorage');
 const chapterImageController = require('../controllers/chapterImageController.js');
 const path = require('path');
 const router = express.Router();
-
-// Middleware upload ảnh cho chapter (Lấy storyTitle & chapterNumber tự động)
-const chapterImageUpload = createUploader((req) => {
-    return path.join(__dirname, '..', 'uploads/tmp'); // Lưu tạm, controller sẽ di chuyển về đúng thư mục
-});
+const chapterImageUpload = require('../middlewares/chapterImageUpload.js');
 
 // 📌 API Upload ảnh cho Chapter (có thể up nhiều ảnh)
 // [POST] /api/chapter-image/

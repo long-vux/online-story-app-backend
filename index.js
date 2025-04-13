@@ -9,7 +9,6 @@ require('dotenv').config();
 const app = express();
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'src', 'uploads')));
-console.log(path.join(__dirname,'src', 'uploads'));
 // Middleware
 app.use(cors());
 app.use(express.json(), express.urlencoded({ extended: true }));
@@ -19,7 +18,6 @@ connectDB();
 
 // Routes
 app.use('/api/user', require('./src/routes/authRoutes'));
-// app.use('/api/admin', require('./src/routes/adminRoutes'));
 app.use('/api/stories', require('./src/routes/storyRoutes'));
 app.use('/api/chapters', require('./src/routes/chapterRoutes'));
 app.use('/api/genres', require('./src/routes/genreRoutes'));
