@@ -1,10 +1,10 @@
 const express = require("express");
 const { createStory, getStories, getStoryById, updateStory, deleteStory, getChaptersByStory } = require("../controllers/storyController");
 const { verifyToken, verifyAdmin } = require("../middlewares/authMiddleware");
-
+const storyThumbnailUpload = require("../middlewares/storyThumbnailUpload");
 const router = express.Router();
 
-router.post("/", verifyToken, verifyAdmin, createStory); // Chỉ Admin mới có thể tạo truyện
+router.post("/", verifyToken, verifyAdmin, storyThumbnailUpload.single("thumbnail"), createStory); // Chỉ Admin mới có thể tạo truyện
 router.get("/", getStories); // Ai cũng có thể xem danh sách truyện
 router.get("/:id", getStoryById); // Ai cũng có thể xem truyện 
 router.put("/:id", verifyToken, verifyAdmin, updateStory); // Chỉ Admin mới có thể sửa truyện

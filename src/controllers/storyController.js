@@ -1,17 +1,32 @@
 const Story = require("../models/Story");
-const Genre = require("../models/Genre");
 const Chapter = require("../models/Chapter");
 const StoryFactory = require("../factories/StoryFactory");
-
+const fs = require('fs');
+const path = require('path');
 // 🟢 [POST] /api/stories   ---- (Tạo truyện (Admin only))
 const createStory = async (req, res) => {
   try {
     const {
       genre, // string: "Action", "Romance", "Detective", "Horror"
-      ...data 
+      ...data
     } = req.body;
 
-    // Sử dụng StoryFactory để tạo đối tượng truyện
+    // Nếu có thumbnail được upload
+    if (req.file) {
+      const tmpPath = req.file.path;
+      const filename = req.file.filename;
+
+      const destDir = path.join(__dirname, '..', 'uploads', 'thumbnails');
+      if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+
+      const destPath = path.join(destDir, filename);
+      fs.renameSync(tmpPath, destPath);
+
+      // Gán đường dẫn thumbnail cho data
+      data.thumbnail = filename;
+    }
+
+    // Tạo đối tượng truyện thông qua factory
     const storyInstance = StoryFactory.createStory(genre, data);
     const newStory = new Story(storyInstance);
     await newStory.save();
@@ -90,7 +105,7 @@ const deleteStory = async (req, res) => {
     if (!story) {
       return res.status(404).json({ message: "Truyện không tồn tại!" });
     }
-    
+
     // Then delete the story
     const deletedStory = await Story.findByIdAndDelete(id);
     if (!deletedStory) {

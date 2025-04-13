@@ -5,8 +5,10 @@ class Story {
         this.title = data.title;
         this.description = data.description;
         this.author = data.author;
+        this.thumbnail = data.thumbnail;
         this.number_of_chapters = data.number_of_chapters || 0;
         this.status = data.status || 'ongoing';
+        
     }
 }
 
