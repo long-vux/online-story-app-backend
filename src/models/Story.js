@@ -7,6 +7,14 @@ const storySchema = new mongoose.Schema({
     author: { type: String, required: true },
     genre: { type: String },
     thumbnail: { type: String },
+    ratings: [
+        {
+            userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+            rating: { type: Number, required: true, min: 1, max: 5 },
+        },
+    ],
+    averageRating: { type: Number, default: 0 },
+    comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
     number_of_chapters: { type: Number, default: 0 }, // Số chương hiện tại
     latest_chapter: { type: Number, default: 0 }, // Số thứ tự chương mới nhất
     status: { type: String, enum: ['ongoing', 'completed'], default: 'ongoing' },
@@ -26,5 +34,16 @@ storySchema.pre('findOneAndDelete', async function (next) {
         next(error);
     }
 });
+
+storySchema.pre('save', function (next) {
+    // Tính trung bình rating trước khi lưu
+    if (this.ratings.length > 0) {
+      const total = this.ratings.reduce((sum, r) => sum + r.rating, 0);
+      this.averageRating = total / this.ratings.length;
+    } else {
+      this.averageRating = 0;
+    }
+    next();
+  });
 
 module.exports = mongoose.model('Story', storySchema);

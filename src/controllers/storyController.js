@@ -1,5 +1,6 @@
 const Story = require("../models/Story");
 const Chapter = require("../models/Chapter");
+const Comment = require("../models/Comment");
 const StoryFactory = require("../factories/StoryFactory");
 const fs = require('fs');
 const path = require('path');
@@ -51,7 +52,10 @@ const getStories = async (req, res) => {
 const getStoryById = async (req, res) => {
   try {
     const { id } = req.params;
-    const story = await Story.findById(id);
+    const story = await Story.findById(id)
+    .populate('comments')
+    .populate('ratings.userId', 'username')
+    .populate('comments.userId', 'username');
 
     if (!story) return res.status(404).json({ message: "Truyện không tồn tại!" });
 
@@ -67,12 +71,12 @@ const updateStory = async (req, res) => {
     const { id } = req.params;
 
     const {
-      title, 
-      description, 
-      author, 
-      genre, 
-      number_of_chapters, 
-      status 
+      title,
+      description,
+      author,
+      genre,
+      number_of_chapters,
+      status
     } = req.body;
 
 
@@ -124,9 +128,9 @@ const getChaptersByStory = async (req, res) => {
     const { storyId } = req.params;
     const story = await Story.findById(storyId);
     if (!story) return res.status(404).json({ message: "Truyện không tồn tại!" });
-    
-    const response = await Chapter.find({ story_id: storyId }).populate('story_id', 'title');    
-    
+
+    const response = await Chapter.find({ story_id: storyId }).populate('story_id', 'title');
+
     res.json(response);
   }
   catch (error) {
@@ -134,4 +138,118 @@ const getChaptersByStory = async (req, res) => {
   }
 }
 
-module.exports = { createStory, getStories, getStoryById, updateStory, deleteStory, getChaptersByStory };
+
+// comment and rating
+const createRating = async (req, res) => {
+  const { rating } = req.body;
+  const userId = req.user.userId; // Lấy từ token (authMiddleware)
+
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ message: 'Rating must be between 1 and 5' });
+  }
+
+  try {
+    const story = await Story.findById(req.params.storyId);
+    if (!story) {
+      return res.status(404).json({ message: 'Story not found' });
+    }
+
+    // Kiểm tra nếu user đã đánh giá trước đó
+    const existingRating = story.ratings.find(r => r.userId.toString() === userId);
+    if (existingRating) {
+      existingRating.rating = rating; // Cập nhật rating
+    } else {
+      story.ratings.push({ userId, rating });
+    }
+
+    await story.save();
+    res.json({ message: 'Rating submitted', averageRating: story.averageRating });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+}
+
+const createComment =  async (req, res) => {
+  const { content } = req.body;
+  const userId = req.user.userId;
+
+  console.log('userid ', userId)
+
+  if (!content) {
+    return res.status(400).json({ message: 'Comment content is required' });
+  }
+
+  try {
+    const story = await Story.findById(req.params.storyId);
+    if (!story) {
+      return res.status(404).json({ message: 'Story not found' });
+    }
+
+    const comment = new Comment({
+      storyId: req.params.storyId,
+      userId,
+      content,
+    });
+
+    await comment.save();
+    story.comments.push(comment._id);
+    await story.save();
+
+    // Populate user info for the new comment
+    const populatedComment = await Comment.findById(comment._id).populate('userId', 'username');
+    res.json({ message: 'Comment added', comment: populatedComment });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+const updateComment = async (req, res) => {
+  const { content } = req.body;
+
+  try {
+    const comment = await Comment.findById(req.params.commentId);
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    comment.content = content;
+    await comment.save();
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+}
+
+const deleteComment = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const comment = await Comment.findById(req.params.commentId);
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    await Comment.findByIdAndDelete(req.params.commentId);
+
+    // Xóa comment khỏi story
+    await Story.findByIdAndUpdate(req.params.storyId, {
+      $pull: { comments: req.params.commentId },
+    });
+
+    res.json({ message: 'Comment deleted' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+}
+
+module.exports = {
+  createStory,
+  getStories,
+  getStoryById,
+  updateStory,
+  deleteStory,
+  getChaptersByStory,
+  createRating,
+  createComment,
+  updateComment,
+  deleteComment
+};
