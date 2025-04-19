@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./src/config/db.js');
 const readingProgressRoutes = require("./src/routes/readingProgressRoutes");
-// const { saveProgressToDatabase } = require("./src/controllers/readingProgressController");
+const { saveProgressToDatabase } = require("./src/controllers/readingProgressController");
 require('dotenv').config();
 
 
@@ -46,8 +46,8 @@ app.use('/api/notifications', require('./src/routes/notificationRoutes'));
 
 app.use("/api/progress", readingProgressRoutes);
 
-// // Gọi hàm lưu tiến trình đọc vào database mỗi 5 phút
-// setInterval(saveProgressToDatabase, 5 * 60 * 1000);
+// Gọi hàm lưu tiến trình đọc vào database mỗi 5 phút
+setInterval(saveProgressToDatabase, 1 * 60 * 1000);
 
 // Khi có client kết nối socket
 io.on('connection', (socket) => {
