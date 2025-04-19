@@ -1,5 +1,7 @@
 const Chapter = require('../models/Chapter');
 const Story = require('../models/Story');
+const Notification = require('../models/Notification');
+
 
 // [POST] /api/chapters
 const addChapter = async (req, res) => {
@@ -39,9 +41,23 @@ const addChapter = async (req, res) => {
     // Nếu đủ số chương thì đánh dấu là completed
     if (actualChapterCount === story.number_of_chapters) {
       story.status = 'completed';
-    } 
+    }
 
     await story.save();
+
+    // lưu vào notification rằng có chapter mới
+    const notification = new Notification({
+      story_id,
+      chapter_id: newChapter._id,
+      message: `Truyện "${story.title}" vừa cập nhật chương ${chapter_number}!`
+    });
+    const savedNotification = await notification.save();
+
+    // 🔥 Emit socket event để client biết có chương mới
+    const io = req.app.get('io'); // Lấy io từ app (đã gắn ở server.js)
+    io.emit('new-chapter', savedNotification);
+    console.log('📢 Emit socket new-chapter:', savedNotification);
+
 
     res.status(201).json({ message: 'Thêm chương thành công!', chapter: newChapter });
   } catch (error) {
@@ -98,7 +114,6 @@ const deleteChapter = async (req, res) => {
     }
 
     const deletedChapter = await Chapter.findByIdAndDelete(id);
-    console.log("deletedChapter", deletedChapter);
     // Cập nhật trạng thái của story
     const story = await Story.findById(deletedChapter.story_id);
     if (!story) {

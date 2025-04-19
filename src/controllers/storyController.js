@@ -55,8 +55,13 @@ const getStoryById = async (req, res) => {
     const story = await Story.findById(id)
     .populate('comments')
     .populate('ratings.userId', 'username')
-    .populate('comments.userId', 'username');
-
+    .populate({
+      path: 'comments',
+      populate: {
+        path: 'userId',
+        select: 'username'
+      }
+    })
     if (!story) return res.status(404).json({ message: "Truyện không tồn tại!" });
 
     res.json(story);
@@ -137,7 +142,6 @@ const getChaptersByStory = async (req, res) => {
     res.status(500).json({ message: "Lỗi server!", error: error.message });
   }
 }
-
 
 // comment and rating
 const createRating = async (req, res) => {

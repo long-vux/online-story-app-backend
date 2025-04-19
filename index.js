@@ -6,8 +6,27 @@ const readingProgressRoutes = require("./src/routes/readingProgressRoutes");
 // const { saveProgressToDatabase } = require("./src/controllers/readingProgressController");
 require('dotenv').config();
 
+
 const app = express();
 const path = require('path');
+
+// web socket.io
+const http = require('http'); // 👈 NEW
+const { Server } = require('socket.io'); // 👈 NEW
+// Tạo HTTP server từ Express app
+const server = http.createServer(app); // 👈 NEW
+
+// Tạo instance Socket.IO trên cùng server
+const io = new Server(server, {
+    cors: {
+        origin: 'http://localhost:3000', // React app
+        methods: ['GET', 'POST']
+    }
+});
+app.set('io', io);
+
+
+
 app.use('/uploads', express.static(path.join(__dirname, 'src', 'uploads')));
 // Middleware
 app.use(cors());
@@ -23,10 +42,23 @@ app.use('/api/chapters', require('./src/routes/chapterRoutes'));
 app.use('/api/genres', require('./src/routes/genreRoutes'));
 app.use('/api/chapters', require('./src/routes/chapterRoutes'));
 app.use('/api/chapter-image', require('./src/routes/chapterImageRoutes'));
+app.use('/api/notifications', require('./src/routes/notificationRoutes'));
+
 app.use("/api/progress", readingProgressRoutes);
 
 // // Gọi hàm lưu tiến trình đọc vào database mỗi 5 phút
 // setInterval(saveProgressToDatabase, 5 * 60 * 1000);
 
+// Khi có client kết nối socket
+io.on('connection', (socket) => {
+    console.log('📡 Client connected:', socket.id);
+
+    socket.on('disconnect', () => {
+        console.log('❌ Client disconnected:', socket.id);
+    });
+});
+
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Server + Socket.IO running on port ${PORT}`));
