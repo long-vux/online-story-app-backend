@@ -25,7 +25,19 @@ const markAsRead = async (req, res) => {
   }
 };
 
+// Đánh dấu tất cả đã đọc
+const markAllAsRead = async (req, res) => {
+  try {
+    const userId = req.user._id; // Lấy user từ token
+    await Notification.updateMany({ user_id: userId, isRead: false }, { isRead: true });
+    res.json({ message: 'Đã đánh dấu tất cả thông báo là đã đọc' });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi khi đánh dấu thông báo!', error: err.message });
+  }
+};
+
 module.exports = {
   getNotifications,
   markAsRead,
+  markAllAsRead,
 };

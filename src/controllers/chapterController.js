@@ -1,7 +1,7 @@
 const Chapter = require('../models/Chapter');
 const Story = require('../models/Story');
 const Notification = require('../models/Notification');
-
+const publisher = require('../services/publisher'); // Import publisher
 
 // [POST] /api/chapters
 const addChapter = async (req, res) => {
@@ -53,11 +53,13 @@ const addChapter = async (req, res) => {
     });
     const savedNotification = await notification.save();
 
-    // 🔥 Emit socket event để client biết có chương mới
-    const io = req.app.get('io'); // Lấy io từ app (đã gắn ở server.js)
-    io.emit('new-chapter', savedNotification);
-    console.log('📢 Emit socket new-chapter:', savedNotification);
+    // 🔥 Gửi thông báo đến các subscriber
+    await publisher.notify(story_id, savedNotification);
 
+    // // 🔥 Emit socket event để client biết có chương mới
+    // const io = req.app.get('io'); // Lấy io từ app (đã gắn ở server.js)
+    // io.emit('new-chapter', savedNotification);
+    // console.log('📢 Emit socket new-chapter:', savedNotification);
 
     res.status(201).json({ message: 'Thêm chương thành công!', chapter: newChapter });
   } catch (error) {
