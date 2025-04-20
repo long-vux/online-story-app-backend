@@ -173,7 +173,7 @@ const createRating = async (req, res) => {
   }
 }
 
-const createComment =  async (req, res) => {
+const createComment = async (req, res) => {
   const { content } = req.body;
   const userId = req.user.userId;
 
@@ -255,5 +255,5 @@ module.exports = {
   createRating,
   createComment,
   updateComment,
-  deleteComment
+  deleteComment,
 };

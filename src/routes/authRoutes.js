@@ -1,6 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { loginUser, registerUser, getUsers, getUserById, updateUser, deleteUser, changePassword, updateAvatar } = require('../controllers/authController');
+const { 
+    loginUser, 
+    registerUser, 
+    getUsers, 
+    getUserById, 
+    updateUser, 
+    deleteUser, 
+    changePassword, 
+    updateAvatar, 
+    subscribeStory, 
+    unsubscribeStory, 
+    isSubscribed 
+} = require('../controllers/authController');
 const { verifyAdmin, verifyToken } = require('../middlewares/authMiddleware');
 const avatarUpload = require('../middlewares/avatarUpload');
 
@@ -27,5 +39,13 @@ router.put('/change-password/:id', verifyToken, changePassword);
 
 // [POST] api/user/:id/avatar
 router.put("/:id/avatar", verifyToken, avatarUpload.single("avatar"), updateAvatar);
+
+router.post('/:storyId/subscribe', verifyToken, subscribeStory);
+
+router.delete('/:storyId/unsubscribe', verifyToken, unsubscribeStory);
+
+// Kiểm tra người dùng có subscribe câu chuyện hay không
+router.get('/:storyId/isSubscribed', verifyToken, isSubscribed);
+  
 
 module.exports = router;

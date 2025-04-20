@@ -18,6 +18,7 @@ const storySchema = new mongoose.Schema({
     number_of_chapters: { type: Number, default: 0 }, // Số chương hiện tại
     latest_chapter: { type: Number, default: 0 }, // Số thứ tự chương mới nhất
     status: { type: String, enum: ['ongoing', 'completed'], default: 'ongoing' },
+    subscribers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, { timestamps: true });
 
 storySchema.pre('findOneAndDelete', async function (next) {
