@@ -9,8 +9,6 @@ const {
     deleteUser, 
     changePassword, 
     updateAvatar, 
-    subscribeStory, 
-    unsubscribeStory, 
     isSubscribed 
 } = require('../controllers/authController');
 const { verifyAdmin, verifyToken } = require('../middlewares/authMiddleware');
@@ -39,10 +37,6 @@ router.put('/change-password/:id', verifyToken, changePassword);
 
 // [POST] api/user/:id/avatar
 router.put("/:id/avatar", verifyToken, avatarUpload.single("avatar"), updateAvatar);
-
-router.post('/:storyId/subscribe', verifyToken, subscribeStory);
-
-router.delete('/:storyId/unsubscribe', verifyToken, unsubscribeStory);
 
 // Kiểm tra người dùng có subscribe câu chuyện hay không
 router.get('/:storyId/isSubscribed', verifyToken, isSubscribed);

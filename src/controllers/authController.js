@@ -246,46 +246,6 @@ const updateAvatar = async (req, res) => {
   }
 };
 
-const subscribeStory = async (req, res) => {
-  try {
-    const story = await Story.findById(req.params.storyId);
-
-    // Kiểm tra xem người dùng đã subscribe chưa
-    if (story.subscribers.includes(req.user.userId)) {
-      return res.status(400).json({ message: "You have already subscribed to this story." });
-    }
-
-    // Thêm user vào mảng subscribers của câu chuyện
-    story.subscribers.push(req.user.userId);
-    await story.save();
-
-    res.status(201).json({ message: 'Subscribed to the story successfully.' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error while subscribing.' });
-  }
-}
-
-const unsubscribeStory = async (req, res) => {
-  try {
-    const story = await Story.findById(req.params.storyId);
-
-    // Kiểm tra xem người dùng có đang subscribe không
-    if (!story.subscribers.includes(req.user.userId)) {
-      return res.status(400).json({ message: "You are not subscribed to this story." });
-    }
-
-    // Xóa user khỏi mảng subscribers của câu chuyện
-    story.subscribers = story.subscribers.filter(userId => userId.toString() !== req.user.userId.toString());
-    await story.save();  // Lưu lại thay đổi trong database
-
-    res.status(204).json({ message: 'Unsubscribed from the story successfully.' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error while unsubscribing.', error: error.message });
-  }
-}
-
 const isSubscribed = async (req, res) => {
   try {
     const story = await Story.findById(req.params.storyId);
@@ -310,7 +270,5 @@ module.exports = {
   deleteUser, 
   changePassword, 
   updateAvatar, 
-  subscribeStory, 
-  unsubscribeStory, 
   isSubscribed 
 };

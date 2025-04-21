@@ -1,5 +1,5 @@
 const Notification = require('../models/Notification');
-
+const publisher = require('../services/publisher');
 
 // Lấy tất cả thông báo (có thể phân trang)
 const getNotifications = async (req, res) => {

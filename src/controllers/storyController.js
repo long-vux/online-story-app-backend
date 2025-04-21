@@ -4,6 +4,7 @@ const Comment = require("../models/Comment");
 const StoryFactory = require("../factories/StoryFactory");
 const fs = require('fs');
 const path = require('path');
+const publisher = require('../services/publisher');
 // 🟢 [POST] /api/stories   ---- (Tạo truyện (Admin only))
 const createStory = async (req, res) => {
   try {
@@ -245,6 +246,40 @@ const deleteComment = async (req, res) => {
   }
 }
 
+// [POST] /api/stories/:storyId/subscribe
+const subscribeToStory = async (req, res) => {
+  try {
+    const { storyId } = req.params;
+    const userId = req.user.userId;
+
+    // Gọi hàm subscribe từ publisher
+    await publisher.subscribe(userId, storyId, () => {
+      console.log(`User ${userId} subscribed to story ${storyId}`);
+    });
+
+    res.status(201).json({ message: 'Subscribed to the story successfully.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error while subscribing.', error: error.message });
+  }
+};
+
+// [DELETE] /api/stories/:storyId/unsubscribe
+const unsubscribeFromStory = async (req, res) => {
+  try {
+    const { storyId } = req.params;
+    const userId = req.user.userId;
+
+    // Gọi hàm unsubscribe từ publisher
+    await publisher.unsubscribe(userId, storyId);
+
+    res.status(204).json({ message: 'Unsubscribed from the story successfully.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error while unsubscribing.', error: error.message });
+  }
+};
+
 module.exports = {
   createStory,
   getStories,
@@ -256,4 +291,6 @@ module.exports = {
   createComment,
   updateComment,
   deleteComment,
+  subscribeToStory,
+  unsubscribeFromStory,
 };

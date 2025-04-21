@@ -1,4 +1,3 @@
-const Subscription = require('../models/Subscription');
 const Story = require('../models/Story');
 
 // services/publisher.js
@@ -13,7 +12,14 @@ class publisher {
   }
 
   async subscribe(userId, storyId, callback) {
-    await Subscription.create({ userId, storyId });
+    const story = await Story.findById(storyId);
+    if (!story) throw new Error('Story not found');
+
+    // Kiểm tra nếu user đã subscribe
+    if (!story.subscribers.includes(userId)) {
+      story.subscribers.push(userId); // Thêm user vào danh sách subscribers
+      await story.save();
+    }
 
     // Lưu vào bộ nhớ để push realtime
     if (!this.subscribers.has(storyId)) {
@@ -24,7 +30,12 @@ class publisher {
 
   // Xóa subscriber
   async unsubscribe(userId, storyId) {
-    await Subscription.deleteOne({ userId, storyId });
+    const story = await Story.findById(storyId);
+    if (!story) throw new Error('Story not found');
+
+    // Xóa user khỏi danh sách subscribers
+    story.subscribers = story.subscribers.filter(subscriber => subscriber.toString() !== userId.toString());
+    await story.save();
 
     if (this.subscribers.has(storyId)) {
       this.subscribers.get(storyId).delete(userId);

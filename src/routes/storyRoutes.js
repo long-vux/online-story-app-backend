@@ -9,6 +9,8 @@ const { createStory,
     createComment,
     updateComment,
     deleteComment,
+    subscribeToStory,
+    unsubscribeFromStory,
 } = require("../controllers/storyController");
 const { verifyToken, verifyAdmin } = require("../middlewares/authMiddleware");
 const storyThumbnailUpload = require("../middlewares/storyThumbnailUpload");
@@ -26,4 +28,11 @@ router.post("/:storyId/comment", verifyToken, createComment); // Tạo comment
 router.put("/:storyId/comment/:commentId", verifyToken, updateComment); // Sửa comment
 router.delete("/:storyId/comment/:commentId", verifyToken, deleteComment); // Xóa comment
 router.post("/:storyId/rate", verifyToken, createRating); // Tạo rating
+
+// [POST] /api/stories/:storyId/subscribe
+router.post('/:storyId/subscribe', verifyToken, subscribeToStory);
+
+// [DELETE] /api/stories/:storyId/unsubscribe
+router.delete('/:storyId/unsubscribe', verifyToken, unsubscribeFromStory);
+
 module.exports = router;
