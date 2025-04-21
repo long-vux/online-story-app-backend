@@ -1,11 +1,16 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const { getProgress, updateProgress } = require("../controllers/readingProgressController");
+const { getProgress, updateProgress, createProgress } = require('../controllers/readingProgressController');
+const { verifyToken } = require('../middlewares/authMiddleware');
 
-// [GET] /api/progress/:userId/:bookId
-router.get("/:userId/:bookId", getProgress);
+
+// [GET] /api/progress/:userId/:storyId
+router.get('/:userId/:storyId',verifyToken, getProgress);
 
 // [POST] /api/progress
-router.post("/", updateProgress);
+router.post('/',verifyToken, updateProgress);
+
+// [DELETE] /api/progress
+router.delete('/',verifyToken, createProgress);
 
 module.exports = router;

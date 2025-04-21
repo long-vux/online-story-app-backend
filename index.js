@@ -2,8 +2,7 @@ const express = require('express');
 // const mongoose = require('mongoose');
 const cors = require('cors');
 const connectDB = require('./src/config/db.js');
-// const readingProgressRoutes = require("./src/routes/readingProgressRoutes");
-// const { saveProgressToDatabase } = require("./src/controllers/readingProgressController");
+const readingProgressRoutes = require("./src/routes/readingProgressRoutes");
 require('dotenv').config();
 
 
@@ -43,7 +42,7 @@ app.use('/api/genres', require('./src/routes/genreRoutes'));
 app.use('/api/chapters', require('./src/routes/chapterRoutes'));
 app.use('/api/chapter-image', require('./src/routes/chapterImageRoutes'));
 app.use('/api/notifications', require('./src/routes/notificationRoutes'));
-// app.use("/api/progress", readingProgressRoutes);
+app.use("/api/progress", readingProgressRoutes);
 
 // Gọi hàm lưu tiến trình đọc vào database mỗi 5 phút
 // setInterval(saveProgressToDatabase, 1 * 60 * 1000);

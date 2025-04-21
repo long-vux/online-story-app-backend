@@ -100,6 +100,17 @@ const updateChapter = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy chương!' });
     }
 
+    
+    // Recalculate latest_chapter
+    const story = await Story.findById(updatedChapter.story_id);
+    if (story) {
+      const latestChapter = await Chapter.find({ story_id: story._id })
+        .sort({ chapter_number: -1 })
+        .limit(1);
+      story.latest_chapter = latestChapter.length > 0 ? latestChapter[0].chapter_number : 0;
+      await story.save();
+    }
+
     res.json({ message: 'Cập nhật chương thành công!', chapter: updatedChapter });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi server!', error: error.message });
@@ -116,13 +127,17 @@ const deleteChapter = async (req, res) => {
     }
 
     const deletedChapter = await Chapter.findByIdAndDelete(id);
-    // Cập nhật trạng thái của story
+
+    // Recalculate latest_chapter
     const story = await Story.findById(deletedChapter.story_id);
-    if (!story) {
-      return res.status(404).json({ message: 'Không tìm thấy truyện!' });
+    if (story) {
+      const latestChapter = await Chapter.find({ story_id: story._id })
+        .sort({ chapter_number: -1 })
+        .limit(1);
+      story.latest_chapter = latestChapter.length > 0 ? latestChapter[0].chapter_number : 0;
+      story.status = 'ongoing'; // Ensure the story status is updated
+      await story.save();
     }
-    story.status = 'ongoing';
-    await story.save(); // Lưu lại thay đổi
 
     res.json({ message: 'Xóa chương thành công!' });
   } catch (error) {

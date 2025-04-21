@@ -12,7 +12,7 @@ const storySchema = new mongoose.Schema({
             userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
             rating: { type: Number, required: true, min: 1, max: 5 },
         },
-    ],
+    ], 
     averageRating: { type: Number, default: 0 },
     comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
     number_of_chapters: { type: Number, default: 0 }, // Số chương hiện tại

@@ -1,42 +1,53 @@
+const ReadingProgress = require('../models/ReadingProgress'); // Import model
+
 class ReadingProgressManager {
   constructor() {
-    if (!ReadingProgressManager.instance) {
-      this.userProgress = {}; // Lưu tiến trình đọc trên bộ nhớ server
-      ReadingProgressManager.instance = this;
+    if (ReadingProgressManager.instance) {
+      console.log('Returning existing ReadingProgressManager instance');
+      return ReadingProgressManager.instance; // Ensure only one instance
     }
-    return ReadingProgressManager.instance;
+    console.log('Creating new ReadingProgressManager instance');
+    ReadingProgressManager.instance = this;
+    Object.freeze(ReadingProgressManager.instance); // Ensure instance is immutable
   }
 
-  // Lấy tiến trình đọc từ cache
-  getProgress(userId, storyId) {
-    const key = `${userId}-${storyId}`;
-    return this.userProgress[key] || { chapter: 1 };
+  // Kiểm tra xem có phải là Singleton instance không
+  static isSingleton() {
+    console.log('Checking if ReadingProgressManager is a singleton');
+    return ReadingProgressManager.instance === this.instance;
   }
 
-  // Cập nhật tiến trình đọc vào cache
-  updateProgress(userId, storyId, chapter) {
-    const key = `${userId}-${storyId}`;
-    this.userProgress[key] = { chapter };
+  // Lấy tiến trình đọc của user cho một câu chuyện
+  async getProgress(userId, storyId) {
+    const progress = await ReadingProgress.findOne({ userId, storyId })
+      .populate('chapterId', 'chapter_number');
+    return progress;
   }
 
-  // Lưu tiến trình đọc từ cache vào database (gọi định kỳ)
-  async saveProgressToDatabase(db) {
-    for (const key in this.userProgress) {
-      const [userId, storyId] = key.split("-");
-      const progress = this.userProgress[key];
+  // Cập nhật tiến trình đọc
+  async updateProgress(userId, storyId, chapterId) {
+    const updatedProgress = await ReadingProgress.findOneAndUpdate(
+      { userId, storyId },
+      { chapterId },
+      { upsert: true, new: true }
+    );
+    console.log('Updated progress:', updatedProgress);
+  }
 
-      await db.findOneAndUpdate(
-        { userId, storyId },
-        { chapter: progress.chapter},
-        { upsert: true }
-      );
-    }
-    console.log("Progress saved to database.");
+  // Xóa tiến trình đọc (nếu cần)
+  async clearProgress(userId, storyId) {
+    await ReadingProgress.deleteOne({ userId, storyId });
   }
 }
 
 // Đảm bảo Singleton Instance
 const instance = new ReadingProgressManager();
 Object.freeze(instance);
+
+// ======= check singleton instance =======
+// const instance1 = new ReadingProgressManager(); 
+// const instance2 = new ReadingProgressManager(); 
+
+// console.log(instance1 === instance2); 
 
 module.exports = instance;
