@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 const Story = require('../models/Story');
+const UserRepository = require('../repositories/UserRepository');
 
 // [POST] api/user/register 
 const registerUser = async (req, res) => {
@@ -11,12 +12,12 @@ const registerUser = async (req, res) => {
     const { username, email, password } = req.body;
 
     // Kiểm tra email đã tồn tại chưa
-    let user = await User.findOne({ $or: [{ email }, { username }] });
+    let user = await UserRepository.findOne({ $or: [{ email }, { username }] });
     if (user) {
       if (user.email === email) {
-        return res.status(400).json({ message: 'Email đã được sử dụng!' });
+        return res.status(400).json({ message: 'Email is already in use!' });
       } else {
-        return res.status(400).json({ message: 'Username đã được sử dụng!' });
+        return res.status(400).json({ message: 'Username is already in use!' });
       }
     }
 
@@ -29,11 +30,10 @@ const registerUser = async (req, res) => {
     // Hash mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Tạo user mới
-    user = new User({ username, email, password: hashedPassword });
-    await user.save();
+    // Create new user
+    user = await UserRepository.create({ username, email, password: hashedPassword });
 
-    res.status(201).json({ message: 'Đăng ký thành công!', user });
+    res.status(201).json({ message: 'Register successfully!', user });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi server! ' + error.message });
   }
@@ -45,18 +45,19 @@ const loginUser = async (req, res) => {
     const { email, password } = req.body;
 
     // Kiểm tra user
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Tài khoản không tồn tại!' });
+    const user = await UserRepository.findOne({ email });
+    if (!user) return res.status(400).json({ message: 'Email does not exist!' });
 
     // Kiểm tra mật khẩu
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Sai mật khẩu!' });
+    if (!isMatch) return res.status(400).json({ message: 'Wrong password!' });
 
     // Kiểm tra email hợp lệ
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Email không hợp lệ!" });
+      return res.status(400).json({ message: "Email is not valid!" });
     }
+
     // Tạo token JWT
     const payload = {
       userId: user._id,
@@ -87,9 +88,9 @@ const getUsers = async (req, res) => {
 
     // Kiểm tra quyền truy cập
     if (requester.role !== "Admin") {
-      return res.status(403).json({ message: "Bạn không có quyền truy cập!" });
+      return res.status(403).json({ message: "Access denied!" });
     }
-    const users = await User.find().select("-password"); // Không trả về password
+    const users = await UserRepository.findAll();
     res.json(users);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -104,14 +105,14 @@ const getUserById = async (req, res) => {
 
     // Kiểm tra quyền truy cập
     if (requester.role !== "Admin" && requester.userId !== id) {
-      return res.status(403).json({ message: "Bạn không có quyền truy cập!" });
+      return res.status(403).json({ message: "Access denied!" });
     }
 
     // Tìm user trong database
-    const user = await User.findById(id).select("-password"); // Không trả về password
+    const user = await UserRepository.findById(id);
 
     if (!user) {
-      return res.status(404).json({ message: "Người dùng không tồn tại!" });
+      return res.status(404).json({ message: "User not found!" });
     }
 
     res.status(200).json(user);
@@ -130,22 +131,18 @@ const updateUser = async (req, res) => {
 
     // Kiểm tra quyền truy cập
     if (requester.role !== "Admin" && requester.id !== id) {
-      return res.status(403).json({ message: "Bạn không có quyền truy cập!" });
+      return res.status(403).json({ message: "Access denied!" });
     }
 
     // Kiểm tra xem user có tồn tại không
-    const user = await User.findById(id);
+    const user = await UserRepository.findById(id);
     if (!user) {
-      return res.status(404).json({ message: "Người dùng không tồn tại!" });
+      return res.status(404).json({ message: "User not found!" });
     }
-    // Cập nhật thông tin user
-    user.username = username || user.username;
-    user.email = email || user.email;
-    user.contact_info = contact_info || user.contact_info;
 
-    await user.save();
+    await UserRepository.update(id, { username, email, contact_info });
 
-    res.status(200).json({ message: "Cập nhật thông tin người dùng thành công!" });
+    res.status(200).json({ message: "User updated successfully!" });
   }
   catch (error) {
     res.status(500).json({ message: "Lỗi server!", error: error.message });
@@ -159,16 +156,16 @@ const deleteUser = async (req, res) => {
     const requester = req.user; // Lấy thông tin user từ middleware auth
     // Kiểm tra quyền truy cập
     if (requester.role !== "Admin" && requester.id !== id) {
-      return res.status(403).json({ message: "Bạn không có quyền truy cập!" });
+      return res.status(403).json({ message: "Access denied!" });
     }
     // Kiểm tra xem user có tồn tại không
-    const user = await User.findById(id);
+    const user = await UserRepository.findById(id);
     if (!user) {
-      return res.status(404).json({ message: "Người dùng không tồn tại!" });
+      return res.status(404).json({ message: "User not found!" });
     }
     // Xóa user
-    await User.findByIdAndDelete(id);
-    res.status(200).json({ message: "Xóa người dùng thành công!" });
+    await UserRepository.delete(id);
+    res.status(200).json({ message: "User deleted successfully!" });
   }
   catch (error) {
     res.status(500).json({ message: "Lỗi server!", error: error.message });
@@ -180,42 +177,49 @@ const changePassword = async (req, res) => {
   try {
     const { id } = req.params;
     const { currentPassword, newPassword } = req.body;
-    const requester = req.user; // Lấy thông tin user từ middleware auth
 
-    // Kiểm tra quyền truy cập
-    if (requester.userId !== id) {
-      return res.status(403).json({ message: "Access denied!" });
+    // Validate required parameters
+    if (!id || !currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Missing required parameters!" });
     }
-    // Kiểm tra xem user có tồn tại không
-    const user = await User.findById(id);
+
+    // Log the parameters for debugging
+    console.log('User ID:', id);
+    console.log('Current Password:', currentPassword);
+    console.log('New Password:', newPassword);
+
+    // Check if user exists
+    const user = await UserRepository.exists(id);
     if (!user) {
-      return res.status(404).json({ message: "Invalid user!" });
+      return res.status(404).json({ message: "User not found!" });
     }
-    // Kiểm tra mật khẩu hiện tại
+
+    // Check current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Wrong current password!' });
     }
-    // Mã hóa mật khẩu mới
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    // Cập nhật mật khẩu mới
-    user.password = hashedPassword;
-    await user.save();
-    res.status(200).json({ message: "Change password successfully!" });
-  }
-  catch (error) {
-    res.status(500).json({ message: "Lỗi server!", error: error.message });
-  }
-}
 
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the password
+    await UserRepository.update(id, { password: hashedPassword });
+
+    res.status(200).json({ message: "Password changed successfully!" });
+  } catch (error) {
+    console.error('Error:', error); // Log the error for debugging
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
 const updateAvatar = async (req, res) => {
   try {
     const userId = req.params.id;
-    if (!req.file) return res.status(400).json({ message: 'Chưa có ảnh được tải lên!' });
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded!' });
 
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User không tồn tại!' });
+    const user = await UserRepository.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found!' });
 
     // Nếu user đã có avatar -> xóa file cũ
     if (user.avatar) {
@@ -233,18 +237,22 @@ const updateAvatar = async (req, res) => {
     if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
 
     const destPath = path.join(destDir, filename);
-    console.log(destPath);
     fs.renameSync(tmpPath, destPath);
 
-    // Cập nhật user với avatar mới
-    user.avatar = filename;
-    await user.save();
+    // Cập nhật user với avatar mới qua UserRepository
+    const updatedUser = await UserRepository.updateAvatar(userId, filename);
 
-    res.status(200).json({ message: 'Cập nhật avatar thành công!', avatar: filename });
+    if (updatedUser) {
+      res.status(200).json({ message: 'Avatar updated successfully!', avatar: filename });
+    } else {
+      res.status(400).json({ message: 'Failed to update avatar.' });
+    }
+
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi server', error: error.message });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
 
 const isSubscribed = async (req, res) => {
   try {
