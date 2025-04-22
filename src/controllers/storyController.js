@@ -5,6 +5,8 @@ const StoryFactory = require("../factories/StoryFactory");
 const fs = require('fs');
 const path = require('path');
 const publisher = require('../services/publisher');
+const StoryRepository = require('../repositories/storyRespository');
+
 // 🟢 [POST] /api/stories   ---- (Tạo truyện (Admin only))
 const createStory = async (req, res) => {
   try {
@@ -30,10 +32,9 @@ const createStory = async (req, res) => {
 
     // Tạo đối tượng truyện thông qua factory
     const storyInstance = StoryFactory.createStory(genre, data);
-    const newStory = new Story(storyInstance);
-    await newStory.save();
+    const newStory = await StoryRepository.create(storyInstance);
 
-    res.status(201).json({ message: "Truyện đã được tạo thành công!", story: newStory });
+    res.status(201).json({ message: "Story created successfully!", story: newStory });
   } catch (error) {
     res.status(500).json({ message: "Lỗi server!", error: error.message });
   }
@@ -42,7 +43,7 @@ const createStory = async (req, res) => {
 // 🟢 [GET] /api/stories ----- (Lấy danh sách truyện)
 const getStories = async (req, res) => {
   try {
-    const stories = await Story.find();
+    const stories = await StoryRepository.findAll();
     res.json(stories);
   } catch (error) {
     res.status(500).json({ message: "Lỗi server!", error: error.message });
@@ -53,17 +54,9 @@ const getStories = async (req, res) => {
 const getStoryById = async (req, res) => {
   try {
     const { id } = req.params;
-    const story = await Story.findById(id)
-    .populate('comments')
-    .populate('ratings.userId', 'username')
-    .populate({
-      path: 'comments',
-      populate: {
-        path: 'userId',
-        select: 'username'
-      }
-    })
-    if (!story) return res.status(404).json({ message: "Truyện không tồn tại!" });
+    const story = await StoryRepository.findById(id);
+
+    if (!story) return res.status(404).json({ message: "Story not found!" });
 
     res.json(story);
   } catch (error) {
@@ -75,56 +68,37 @@ const getStoryById = async (req, res) => {
 const updateStory = async (req, res) => {
   try {
     const { id } = req.params;
+    const { title, description, author, genre, number_of_chapters, status } = req.body;
 
-    const {
+    const updatedStory = await StoryRepository.update(id, {
       title,
       description,
       author,
       genre,
       number_of_chapters,
       status
-    } = req.body;
+    });
 
+    if (!updatedStory) return res.status(404).json({ message: "Story not found!" });
 
-    const story = await Story.findById(id);
-    if (!story) return res.status(404).json({ message: "Truyện không tồn tại!" });
-
-    story.title = title || story.title;
-    story.description = description || story.description;
-    story.author = author || story.author;
-    story.genre = genre || story.genre;
-    story.number_of_chapters = number_of_chapters || story.number_of_chapters;
-    story.status = status || story.status;
-
-    await story.save();
-    res.json({ message: "Cập nhật truyện thành công!", story });
+    res.json({ message: "Story updated successfully!", story: updatedStory });
   } catch (error) {
     res.status(500).json({ message: "Lỗi server!", error: error.message });
   }
 };
 
+
 // 🟢 [DELETE] /api/stories/:id --------- Xóa truyện (Admin only)
 const deleteStory = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!id) {
-      return res.status(400).json({ message: "Invalid story ID!" });
-    }
+    if (!id) return res.status(400).json({ message: "Invalid story ID!" });
 
-    const story = await Story.findById(id);
-    if (!story) {
-      return res.status(404).json({ message: "Truyện không tồn tại!" });
-    }
+    const deletedStory = await StoryRepository.delete(id);
+    if (!deletedStory) return res.status(404).json({ message: "Story not found!" });
 
-    // Then delete the story
-    const deletedStory = await Story.findByIdAndDelete(id);
-    if (!deletedStory) {
-      return res.status(404).json({ message: "Truyện không tồn tại!" });
-    }
-
-    res.json({ message: "Xóa truyện thành công!" });
+    res.json({ message: "Story deleted successfully!" });
   } catch (error) {
-    console.error("Error deleting story:", error);
     res.status(500).json({ message: "Lỗi server!", error: error.message });
   }
 };
@@ -132,47 +106,36 @@ const deleteStory = async (req, res) => {
 const getChaptersByStory = async (req, res) => {
   try {
     const { storyId } = req.params;
-    const story = await Story.findById(storyId);
-    if (!story) return res.status(404).json({ message: "Truyện không tồn tại!" });
+    const story = await StoryRepository.findById(storyId);
+    if (!story) return res.status(404).json({ message: "Story not found!" });
 
-    const response = await Chapter.find({ story_id: storyId }).populate('story_id', 'title');
-
-    res.json(response);
-  }
-  catch (error) {
+    const chapters = await StoryRepository.findChaptersByStoryId(storyId);
+    res.json(chapters);
+  } catch (error) {
     res.status(500).json({ message: "Lỗi server!", error: error.message });
   }
-}
+};
 
-// comment and rating
+// ====================== comment and rating ========================
 const createRating = async (req, res) => {
   const { rating } = req.body;
-  const userId = req.user.userId; // Lấy từ token (authMiddleware)
+  const userId = req.user.userId; 
 
   if (!rating || rating < 1 || rating > 5) {
     return res.status(400).json({ message: 'Rating must be between 1 and 5' });
   }
 
   try {
-    const story = await Story.findById(req.params.storyId);
+    const story = await StoryRepository.updateRating(req.params.storyId, userId, rating);
     if (!story) {
       return res.status(404).json({ message: 'Story not found' });
     }
 
-    // Kiểm tra nếu user đã đánh giá trước đó
-    const existingRating = story.ratings.find(r => r.userId.toString() === userId);
-    if (existingRating) {
-      existingRating.rating = rating; // Cập nhật rating
-    } else {
-      story.ratings.push({ userId, rating });
-    }
-
-    await story.save();
     res.json({ message: 'Rating submitted', averageRating: story.averageRating });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
-}
+};
 
 const createComment = async (req, res) => {
   const { content } = req.body;

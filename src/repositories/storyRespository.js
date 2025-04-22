@@ -69,6 +69,27 @@ class StoryRepository {
     }
   }
 
+  static async updateRating(storyId, userId, rating) {
+    const story = await this.findById(storyId);
+    if (!story) return null;
+
+    // Kiểm tra nếu user đã đánh giá trước đó
+    const existingRating = story.ratings.find(r => r.userId._id === userId);
+    if (existingRating) {
+      existingRating.rating = rating; // Cập nhật rating
+    } else {
+      story.ratings.push({ userId, rating });
+    }
+
+    // Tính toán lại averageRating
+    const totalRatings = story.ratings.reduce((acc, r) => acc + r.rating, 0);
+    story.averageRating = totalRatings / story.ratings.length;
+
+    await story.save();
+    return story;
+  }
+
+
   // Handle story thumbnail (file management)
   static handleThumbnail(req, data) {
     if (req.file) {
