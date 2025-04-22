@@ -2,18 +2,20 @@ const Chapter = require('../models/Chapter');
 const Story = require('../models/Story');
 const Notification = require('../models/Notification');
 const publisher = require('../services/publisher'); // Import publisher
+const ChapterRepository = require('../repositories/chapterRepository');
+const StoryRepository = require('../repositories/storyRespository');
 
 // [POST] /api/chapters
 const addChapter = async (req, res) => {
   try {
     const { story_id, title, content, chapter_number } = req.body;
-    const story = await Story.findById(story_id);
+    const story = await StoryRepository.findById(story_id);
 
     if (!story) {
-      return res.status(404).json({ message: 'Không tìm thấy truyện!' });
+      return res.status(404).json({ message: 'Story not found!' });
     }
     if (story.status === 'completed') {
-      return res.status(400).json({ message: 'Truyện đã hoàn thành, không thể thêm chương mới!' });
+      return res.status(400).json({ message: 'Story completed, can not add new chapter!' });
     }
     // Kiểm tra chapter_number hợp lệ
     if (chapter_number > story.number_of_chapters) {
@@ -21,9 +23,9 @@ const addChapter = async (req, res) => {
     }
 
     // Kiểm tra xem chapter_number đã tồn tại chưa
-    const existingChapter = await Chapter.findOne({ story_id, chapter_number });
+    const existingChapter = await ChapterRepository.findOne({ story_id, chapter_number });
     if (existingChapter) {
-      return res.status(400).json({ message: `Chương ${chapter_number} đã tồn tại!` });
+      return res.status(400).json({ message: `Chapter ${chapter_number} exist!` });
     }
 
     // Cập nhật latest_chapter nếu cần
@@ -33,7 +35,7 @@ const addChapter = async (req, res) => {
 
     // Tạo chương mới
     const newChapter = new Chapter({ story_id, chapter_number, title, content });
-    await newChapter.save();
+    await ChapterRepository.create(newChapter);
 
     // Đếm số chương thực tế hiện có
     const actualChapterCount = await Chapter.countDocuments({ story_id });
@@ -43,7 +45,7 @@ const addChapter = async (req, res) => {
       story.status = 'completed';
     }
 
-    await story.save();
+    await StoryRepository.update(story_id, story);
 
     // lưu vào notification rằng có chapter mới
     const notification = new Notification({
@@ -72,10 +74,10 @@ const addChapter = async (req, res) => {
 const getChapterById = async (req, res) => {
   try {
     const { id } = req.params;
-    const chapter = await Chapter.findById(id).populate('story_id', 'title');
+    const chapter = await ChapterRepository.findById(id).populate('story_id', 'title');
 
     if (!chapter) {
-      return res.status(404).json({ message: 'Không tìm thấy chương!' });
+      return res.status(404).json({ message: 'Chapter not found!' });
     }
 
     res.json(chapter);
@@ -90,25 +92,21 @@ const updateChapter = async (req, res) => {
     const { id } = req.params;
     const { title, content } = req.body;
 
-    const updatedChapter = await Chapter.findByIdAndUpdate(
-      id,
-      { title, content },
-      { new: true }
-    );
+    const updatedChapter = await ChapterRepository.update(id, { title, content });
 
     if (!updatedChapter) {
       return res.status(404).json({ message: 'Không tìm thấy chương!' });
     }
 
-    
-    // Recalculate latest_chapter
-    const story = await Story.findById(updatedChapter.story_id);
+    const story = await StoryRepository.findById(updatedChapter.story_id);
     if (story) {
-      const latestChapter = await Chapter.find({ story_id: story._id })
-        .sort({ chapter_number: -1 })
-        .limit(1);
+      const latestChapter = await ChapterRepository.findSorted(
+        { story_id: story._id },
+        { chapter_number: -1 },
+        1
+      );
       story.latest_chapter = latestChapter.length > 0 ? latestChapter[0].chapter_number : 0;
-      await story.save();
+      await StoryRepository.update(story._id, story);
     }
 
     res.json({ message: 'Cập nhật chương thành công!', chapter: updatedChapter });
@@ -117,32 +115,33 @@ const updateChapter = async (req, res) => {
   }
 };
 
+
 // [DELETE] /api/chapters/:id
 const deleteChapter = async (req, res) => {
   try {
     const { id } = req.params;
-    const chapter = await Chapter.findById(id);
+    const chapter = await ChapterRepository.findById(id);
     if (!chapter) {
       return res.status(404).json({ message: 'Không tìm thấy chương!' });
     }
 
-    const deletedChapter = await Chapter.findByIdAndDelete(id);
+    const deletedChapter = await ChapterRepository.delete(id);
 
-    // Recalculate latest_chapter
-    const story = await Story.findById(deletedChapter.story_id);
+    const story = await StoryRepository.findById(deletedChapter.story_id);
     if (story) {
-      const latestChapter = await Chapter.find({ story_id: story._id })
-        .sort({ chapter_number: -1 })
-        .limit(1);
+      const latestChapter = await ChapterRepository.findSorted(
+        { story_id: story._id },
+        { chapter_number: -1 },
+        1
+      );
       story.latest_chapter = latestChapter.length > 0 ? latestChapter[0].chapter_number : 0;
-      story.status = 'ongoing'; // Ensure the story status is updated
-      await story.save();
+      story.status = 'ongoing';
+      await StoryRepository.update(story._id, story);
     }
 
     res.json({ message: 'Xóa chương thành công!' });
   } catch (error) {
-    console.error("Lỗi server:", error); // Debug: In lỗi ra console
-
+    console.error("Lỗi server:", error);
     res.status(500).json({ message: 'Lỗi server!', error: error.message });
   }
 };

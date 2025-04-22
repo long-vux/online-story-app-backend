@@ -89,7 +89,6 @@ class StoryRepository {
     return story;
   }
 
-
   // Handle story thumbnail (file management)
   static handleThumbnail(req, data) {
     if (req.file) {
@@ -105,6 +104,10 @@ class StoryRepository {
       data.thumbnail = filename;
     }
     return data;
+  }
+
+  async countDocuments(query) {
+    return Story.countDocuments(query);
   }
 }
 
