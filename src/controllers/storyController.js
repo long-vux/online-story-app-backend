@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const publisher = require('../services/publisher');
 const StoryRepository = require('../repositories/storyRespository');
+const CommentRepository = require('../repositories/commentRepository');
 
 // 🟢 [POST] /api/stories   ---- (Tạo truyện (Admin only))
 const createStory = async (req, res) => {
@@ -139,32 +140,23 @@ const createRating = async (req, res) => {
 
 const createComment = async (req, res) => {
   const { content } = req.body;
-  const userId = req.user.userId;
-
-  console.log('userid ', userId)
+  const userId = req.user.userId; 
 
   if (!content) {
     return res.status(400).json({ message: 'Comment content is required' });
   }
 
   try {
-    const story = await Story.findById(req.params.storyId);
+    const story = await StoryRepository.findById(req.params.storyId);
     if (!story) {
       return res.status(404).json({ message: 'Story not found' });
     }
 
-    const comment = new Comment({
-      storyId: req.params.storyId,
-      userId,
-      content,
-    });
-
-    await comment.save();
-    story.comments.push(comment._id);
-    await story.save();
+    const newComment = await CommentRepository.createComment(req.params.storyId, userId, content);
 
     // Populate user info for the new comment
-    const populatedComment = await Comment.findById(comment._id).populate('userId', 'username');
+    const populatedComment = await CommentRepository.getPopulatedComment(newComment._id);
+
     res.json({ message: 'Comment added', comment: populatedComment });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
@@ -175,17 +167,16 @@ const updateComment = async (req, res) => {
   const { content } = req.body;
 
   try {
-    const comment = await Comment.findById(req.params.commentId);
-    if (!comment) {
+    const updatedComment = await CommentRepository.updateComment(req.params.commentId, content);
+    if (!updatedComment) {
       return res.status(404).json({ message: 'Comment not found' });
     }
 
-    comment.content = content;
-    await comment.save();
+    res.json({ message: 'Comment updated', comment: updatedComment });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
-}
+};
 
 const deleteComment = async (req, res) => {
   const userId = req.user.id;
