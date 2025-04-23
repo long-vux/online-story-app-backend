@@ -1,57 +1,24 @@
-// factories/StoryFactory.js
-class Story {
-    constructor(data) {
-        this.genre = data.genre;
-        this.title = data.title;
-        this.description = data.description;
-        this.author = data.author;
-        this.thumbnail = data.thumbnail;
-        this.number_of_chapters = data.number_of_chapters || 0;
-        this.status = data.status || 'ongoing';
-        
-    }
-}
+// StoryFactory.js
 
-class ActionStory extends Story {
-    constructor(data) {
-        super(data);
-        this.genre = "Action";
-    }
-}
-
-class HorrorStory extends Story {
-    constructor(data) {
-        super(data);
-        this.genre = "Horror";
-    }
-}
-
-class RomanceStory extends Story {
-    constructor(data) {
-        super(data);
-        this.genre = "Romance";
-    }
-}
-
-class DetectiveStory extends Story {
-    constructor(data) {
-        super(data);
-        this.genre = "Detective";
-    }
-}
+const {
+    ActionStoryCreator,
+    HorrorStoryCreator,
+    RomanceStoryCreator,
+    DetectiveStoryCreator
+} = require('./StoryCreator');
 
 class StoryFactory {
     static createStory(genre, data) {
-        console.log('data',genre);
+        console.log('Creating story for genre:', genre);
         switch (genre.toLowerCase()) {
             case "action":
-                return new ActionStory(data);
+                return ActionStoryCreator.create(data);
             case "horror":
-                return new HorrorStory(data);
+                return HorrorStoryCreator.create(data);
             case "romance":
-                return new RomanceStory(data);
+                return RomanceStoryCreator.create(data);
             case "detective":
-                return new DetectiveStory(data);
+                return DetectiveStoryCreator.create(data);
             default:
                 throw new Error("Genre not supported");
         }

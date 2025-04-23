@@ -1,5 +1,4 @@
 const Story = require("../models/Story");
-const Chapter = require("../models/Chapter");
 const Comment = require("../models/Comment");
 const StoryFactory = require("../factories/StoryFactory");
 const fs = require('fs');
