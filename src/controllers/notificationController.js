@@ -1,13 +1,9 @@
-const Notification = require('../models/Notification');
-const publisher = require('../services/publisher');
+const NotificationRepository = require('../repositories/notificationRepository');
 
 // Lấy tất cả thông báo (có thể phân trang)
 const getNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find()
-      .sort({ createdAt: -1 })
-      .populate('story_id', 'title')
-      .populate('chapter_id', 'chapter_number title');
+    const notifications = await NotificationRepository.findAll();
     res.json(notifications);
   } catch (err) {
     res.status(500).json({ message: 'Lỗi khi lấy danh sách thông báo!', error: err.message });
@@ -18,7 +14,12 @@ const getNotifications = async (req, res) => {
 const markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
-    await Notification.findByIdAndUpdate(id, { isRead: true });
+    const notification = await NotificationRepository.updateById(id, { isRead: true });
+
+    if (!notification) {
+      return res.status(404).json({ message: 'Không tìm thấy thông báo!' });
+    }
+
     res.json({ message: 'Đã đánh dấu đã đọc' });
   } catch (err) {
     res.status(500).json({ message: 'Lỗi khi đánh dấu thông báo!', error: err.message });
@@ -29,7 +30,7 @@ const markAsRead = async (req, res) => {
 const markAllAsRead = async (req, res) => {
   try {
     const userId = req.user._id; // Lấy user từ token
-    await Notification.updateMany({ user_id: userId, isRead: false }, { isRead: true });
+    await NotificationRepository.updateMany({ user_id: userId, isRead: false }, { isRead: true });
     res.json({ message: 'Đã đánh dấu tất cả thông báo là đã đọc' });
   } catch (err) {
     res.status(500).json({ message: 'Lỗi khi đánh dấu thông báo!', error: err.message });

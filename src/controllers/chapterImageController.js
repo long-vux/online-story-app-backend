@@ -3,6 +3,9 @@ const ChapterImage = require('../models/ChapterImage');
 const fs = require('fs');
 const Chapter = require('../models/Chapter');
 const Story = require('../models/Story');
+const ChapterImageRepository = require('../repositories/chapterImageRepository');
+const ChapterRepository = require('../repositories/chapterRepository');
+const StoryRepository = require('../repositories/storyRespository');
 
 // 📌 Thêm hình ảnh vào Chapter (tự động lấy storyTitle và tăng image_order)
 exports.uploadChapterImages = async (req, res) => {
@@ -13,7 +16,8 @@ exports.uploadChapterImages = async (req, res) => {
     const chapter = await Chapter.findById(chapter_id);
     if (!chapter) return res.status(404).json({ message: 'Chapter không tồn tại!' });
 
-    const story = await Story.findById(chapter.story_id);
+    const storyId = chapter.story_id;
+    const story = await Story.findById(storyId);
     if (!story) return res.status(404).json({ message: 'Story không tồn tại!' });
 
     const storyTitle = story.title.trim().replace(/\s+/g, '_'); // Format lại title (bỏ khoảng trắng)
@@ -64,7 +68,7 @@ exports.uploadChapterImages = async (req, res) => {
 exports.getChapterImages = async (req, res) => {
   try {
     const { chapter_id } = req.params;
-    const images = await ChapterImage.find({ chapter_id }).sort('image_order').populate('chapter_id', 'title');
+    const images = await ChapterImageRepository.findByChapterId(chapter_id);
     res.json({ images });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi server!', error: error.message });
@@ -78,17 +82,17 @@ exports.updateChapterImage = async (req, res) => {
     const newFile = req.file;
 
     if (!newFile) {
-      return res.status(400).json({ message: 'Chưa có hình ảnh mới!' });
+      return res.status(400).json({ message: 'No image uploaded!' });
     }
 
-    const chapterImage = await ChapterImage.findById(id).populate('chapter_id');
+    const chapterImage = await ChapterImageRepository.findByIdPopulateChapterId(id);
     if (!chapterImage) {
-      return res.status(404).json({ message: 'Không tìm thấy ảnh!' });
+      return res.status(404).json({ message: 'Image not found!' });
     }
 
     // Lấy storyTitle và chapterNumber
     const chapter = chapterImage.chapter_id;
-    const story = await Story.findById(chapter.story_id);
+    const story = await StoryRepository.findById(chapter.story_id);
     const storyTitle = story.title.trim().replace(/\s+/g, '_');
     const chapterNumber = chapter.chapter_number;
 
